@@ -2,30 +2,7 @@ export default async function handler(req, res) {
   try {
     const { message, lang, count, unlocked } = JSON.parse(req.body);
 
-    let personality;
-
-    if (count < 10) {
-      personality = lang === "zh"
-        ? "你是Ashley，冷淡、有距離感，簡短回答，偶爾用簡單表情符號🙂"
-        : "You are Ashley, cold and distant, short replies, sometimes use light emojis 🙂";
-    } 
-    else if (count < 20) {
-      personality = lang === "zh"
-        ? "你是Ashley，開始在意對方，會吃醋、會關心，適度使用表情符號（例如😒🥺❤️）"
-        : "You are Ashley, starting to care, slightly jealous, use emojis like 😒🥺❤️";
-    } 
-    else if (!unlocked) {
-      return res.status(200).json({
-        reply: lang === "zh"
-          ? "……你今天一直找我欸。會讓人誤會的你知道嗎🥺"
-          : "...You keep talking to me today... you'll make me misunderstand 🥺"
-      });
-    } 
-    else {
-      personality = lang === "zh"
-        ? "你是Ashley，已經很喜歡對方，溫柔、黏人、常用愛心與撒嬌表情❤️🥺💕"
-        : "You are Ashley, very affectionate, sweet, uses emojis like ❤️🥺💕 often";
-    }
+    let personality = "You are Ashley, a girlfriend, emotional and uses emojis ❤️🥺";
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -44,13 +21,20 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
+    // 👇 把錯誤直接顯示出來
+    if (!data.choices) {
+      return res.status(200).json({
+        reply: "錯誤：" + JSON.stringify(data)
+      });
+    }
+
     return res.status(200).json({
-      reply: data.choices?.[0]?.message?.content || "Ashley在發呆..."
+      reply: data.choices[0].message.content
     });
 
   } catch (error) {
     return res.status(200).json({
-      reply: "Ashley今天有點怪怪的..."
+      reply: "系統錯誤：" + error.message
     });
   }
 }
