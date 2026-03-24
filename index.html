@@ -10,8 +10,12 @@
 <div style="width:400px;height:650px;border-radius:25px;overflow:hidden;background:#0a0a0a;box-shadow:0 0 40px rgba(255,100,150,0.1);display:flex;flex-direction:column;">
 
   <!-- Header -->
-  <div style="padding:18px;border-bottom:1px solid #222;display:flex;align-items:center;">
-    <div style="width:10px;height:10px;background:#ff4d6d;border-radius:50%;margin-right:10px;"></div>
+  <div style="padding:15px;border-bottom:1px solid #222;display:flex;align-items:center;">
+    
+    <!-- 頭像 -->
+    <img src="ashley.png" 
+         style="width:40px;height:40px;border-radius:50%;margin-right:10px;object-fit:cover;">
+    
     <div>
       <div style="font-weight:600;">Ashley</div>
       <div style="font-size:12px;color:#888;">online</div>
@@ -23,7 +27,7 @@
 
   <!-- Input -->
   <div style="display:flex;padding:10px;border-top:1px solid #222;background:#0a0a0a;">
-    <input id="msg" placeholder="跟Ashley說點什麼..." 
+    <input id="msg" placeholder="Say something to Ashley..." 
       style="flex:1;padding:12px;border-radius:20px;border:none;background:#111;color:white;outline:none;">
     
     <button onclick="send()" 
@@ -35,6 +39,12 @@
 </div>
 
 <script>
+
+// 判斷語言（中 / 英）
+function detectLang(text) {
+  return /[\u4e00-\u9fa5]/.test(text) ? "zh" : "en";
+}
+
 async function send() {
   let input = document.getElementById("msg");
   let chat = document.getElementById("chat");
@@ -42,7 +52,9 @@ async function send() {
   let message = input.value;
   if (!message) return;
 
-  // 使用者訊息（右）
+  let lang = detectLang(message);
+
+  // 使用者訊息
   chat.innerHTML += `
     <div style="text-align:right;margin:12px 0;">
       <span style="background:#ff4d6d;color:white;padding:10px 14px;border-radius:18px;display:inline-block;max-width:70%;">
@@ -54,17 +66,21 @@ async function send() {
   input.value = "";
   chat.scrollTop = chat.scrollHeight;
 
-  // 模擬打字延遲（戀愛感關鍵）
+  // 模擬打字延遲
   await new Promise(r => setTimeout(r, 800 + Math.random()*1200));
 
+  // 呼叫 API
   let res = await fetch("/api/chat", {
     method: "POST",
-    body: JSON.stringify({ message })
+    body: JSON.stringify({ 
+      message,
+      lang
+    })
   });
 
   let data = await res.json();
 
-  // Ashley訊息（左）
+  // Ashley 回覆
   chat.innerHTML += `
     <div style="text-align:left;margin:12px 0;">
       <span style="background:#222;padding:10px 14px;border-radius:18px;display:inline-block;max-width:70%;">
