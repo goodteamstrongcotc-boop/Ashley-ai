@@ -5,26 +5,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 
-<body style="margin:0;background:#000;font-family:sans-serif;color:white;display:flex;justify-content:center;align-items:center;height:100vh;">
+<body style="margin:0;background:#ffe4ec;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;">
 
-<div style="width:400px;height:650px;border-radius:25px;overflow:hidden;background:#0a0a0a;display:flex;flex-direction:column;">
+<div style="width:400px;height:650px;border-radius:25px;overflow:hidden;background:white;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(255,100,150,0.2);">
 
   <!-- Header -->
-  <div style="padding:15px;border-bottom:1px solid #222;display:flex;align-items:center;">
+  <div style="padding:15px;border-bottom:1px solid #eee;display:flex;align-items:center;background:#fff0f5;">
     <img src="ashley.png" style="width:40px;height:40px;border-radius:50%;margin-right:10px;">
     <div>
-      <div style="font-weight:600;">Ashley</div>
-      <div style="font-size:12px;color:#888;">online</div>
+      <div style="font-weight:600;color:#ff4d6d;">Ashley</div>
+      <div style="font-size:12px;color:#999;">online</div>
     </div>
   </div>
 
   <!-- Chat -->
-  <div id="chat" style="flex:1;padding:15px;overflow-y:auto;"></div>
+  <div id="chat" style="flex:1;padding:15px;overflow-y:auto;background:white;"></div>
 
   <!-- Input -->
-  <div style="display:flex;padding:10px;border-top:1px solid #222;">
-    <input id="msg" placeholder="說點什麼..." style="flex:1;padding:12px;border-radius:20px;border:none;background:#111;color:white;">
-    <button onclick="send()" style="margin-left:10px;padding:12px 18px;border-radius:20px;border:none;background:#ff4d6d;color:white;">
+  <div style="display:flex;padding:10px;border-top:1px solid #eee;background:#fff;">
+    <input id="msg" placeholder="跟Ashley說點什麼..." 
+      style="flex:1;padding:12px;border-radius:20px;border:1px solid #eee;background:#fff;">
+    
+    <button onclick="send()" 
+      style="margin-left:10px;padding:12px 18px;border-radius:20px;border:none;background:#ff4d6d;color:white;">
       Send
     </button>
   </div>
@@ -32,14 +35,15 @@
 </div>
 
 <!-- 升級彈窗 -->
-<div id="upgrade" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);justify-content:center;align-items:center;">
+<div id="upgrade" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,200,220,0.6);justify-content:center;align-items:center;">
 
-  <div style="background:#111;padding:30px;border-radius:20px;text-align:center;width:300px;">
-    <h3>Ashley不理你了...</h3>
-    <p style="color:#aaa;">她好像有點在意你，但不想再免費聊天了</p>
+  <div style="background:white;padding:30px;border-radius:20px;text-align:center;width:300px;">
+    <h3 style="color:#ff4d6d;">Ashley有點在意你...</h3>
+    <p style="color:#666;">但她不會再免費陪你聊天了</p>
 
-    <button style="margin-top:15px;padding:12px 20px;border:none;border-radius:20px;background:#ff4d6d;color:white;">
-      解鎖Ashley 💕 ($4.99/月)
+    <button onclick="pay()" 
+      style="margin-top:15px;padding:12px 20px;border:none;border-radius:20px;background:#ff4d6d;color:white;">
+      解鎖 Ashley 💕 $4.99
     </button>
   </div>
 
@@ -47,8 +51,9 @@
 
 <script>
 let count = localStorage.getItem("count") || 0;
+let unlocked = localStorage.getItem("unlocked");
 
-// 判斷語言
+// 語言判斷
 function detectLang(text) {
   return /[\u4e00-\u9fa5]/.test(text) ? "zh" : "en";
 }
@@ -60,8 +65,8 @@ async function send() {
   let message = input.value;
   if (!message) return;
 
-  // 限制20句
-  if (count >= 20) {
+  // 限制
+  if (!unlocked && count >= 20) {
     document.getElementById("upgrade").style.display = "flex";
     return;
   }
@@ -71,10 +76,9 @@ async function send() {
 
   let lang = detectLang(message);
 
-  // 使用者訊息
   chat.innerHTML += `
     <div style="text-align:right;margin:12px 0;">
-      <span style="background:#ff4d6d;padding:10px 14px;border-radius:18px;display:inline-block;">
+      <span style="background:#ff4d6d;color:white;padding:10px 14px;border-radius:18px;">
         ${message}
       </span>
     </div>
@@ -87,21 +91,27 @@ async function send() {
 
   let res = await fetch("/api/chat", {
     method: "POST",
-    body: JSON.stringify({ message, lang, count })
+    body: JSON.stringify({ message, lang, count, unlocked })
   });
 
   let data = await res.json();
 
-  // Ashley訊息
   chat.innerHTML += `
     <div style="text-align:left;margin:12px 0;">
-      <span style="background:#222;padding:10px 14px;border-radius:18px;display:inline-block;">
+      <span style="background:#ffe4ec;padding:10px 14px;border-radius:18px;">
         ${data.reply}
       </span>
     </div>
   `;
 
   chat.scrollTop = chat.scrollHeight;
+}
+
+// 假付款（之後會接Stripe）
+function pay() {
+  alert("測試模式：已解鎖 Ashley 💕");
+  localStorage.setItem("unlocked", true);
+  document.getElementById("upgrade").style.display = "none";
 }
 </script>
 
