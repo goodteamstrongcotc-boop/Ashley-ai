@@ -1,135 +1,117 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Ashley AI Girlfriend</title>
+  <title>Ashley</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <style>
-    body {margin:0;background:#ffe4ec;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;}
-    .container {width:400px;height:650px;border-radius:25px;overflow:hidden;background:white;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(255,100,150,0.2);}
-    .header {padding:15px;border-bottom:1px solid #eee;display:flex;align-items:center;background:#fff0f5;}
-    .header img {width:40px;height:40px;border-radius:50%;margin-right:10px;}
-    .chat {flex:1;padding:15px;overflow-y:auto;background:white;}
-    .input-area {display:flex;padding:10px;border-top:1px solid #eee;background:#fff;}
-    .input-area input {flex:1;padding:12px;border-radius:20px;border:1px solid #eee;background:#fff;outline:none;}
-    .input-area button {margin-left:10px;padding:12px 18px;border-radius:20px;border:none;background:#ff4d6d;color:white;}
-    #upgrade {display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,200,220,0.6);justify-content:center;align-items:center;display:flex;}
-    #upgrade .popup {background:white;padding:30px;border-radius:20px;text-align:center;width:300px;}
-    #login {display:flex;justify-content:center;align-items:center;flex-direction:column;width:100%;height:100vh;background:#ffe4ec;}
-    #login button {padding:12px 20px;border:none;border-radius:20px;background:#ff4d6d;color:white;margin-top:20px;font-size:16px;}
-  </style>
 </head>
 
-<body>
-  <!-- 登入畫面 -->
-  <div id="login">
-    <h2>登入 Ashley AI</h2>
-    <button onclick="googleLogin()">用 Google 登入</button>
-  </div>
+<body style="margin:0;background:#ffe4ec;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;">
 
-  <!-- 聊天容器 -->
-  <div class="container" id="chatContainer" style="display:none;">
-    <div class="header">
-      <img src="ashley.png" />
-      <div>
-        <div style="font-weight:600;color:#ff4d6d;">Ashley</div>
-        <div style="font-size:12px;color:#999;">online</div>
-      </div>
-    </div>
-    <div id="chat" class="chat"></div>
-    <div class="input-area">
-      <input id="msg" placeholder="跟Ashley說點什麼..." />
-      <button onclick="send()">Send</button>
+<div style="width:400px;height:650px;border-radius:25px;overflow:hidden;background:white;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(255,100,150,0.2);">
+
+  <!-- Header -->
+  <div style="padding:15px;border-bottom:1px solid #eee;display:flex;align-items:center;background:#fff0f5;">
+    <img src="ashley.png" style="width:40px;height:40px;border-radius:50%;margin-right:10px;">
+    <div>
+      <div style="font-weight:600;color:#ff4d6d;">Ashley</div>
+      <div style="font-size:12px;color:#999;">online</div>
     </div>
   </div>
 
-  <!-- 升級彈窗 -->
-  <div id="upgrade">
-    <div class="popup">
-      <h3 style="color:#ff4d6d;">Ashley有點在意你...</h3>
-      <p style="color:#666;">但她不會再免費陪你聊天了</p>
-      <button onclick="pay()">解鎖 Ashley 💕 $4.99</button>
-    </div>
+  <!-- Chat -->
+  <div id="chat" style="flex:1;padding:15px;overflow-y:auto;background:white;"></div>
+
+  <!-- Input -->
+  <div style="display:flex;padding:10px;border-top:1px solid #eee;background:#fff;">
+    <input id="msg" placeholder="跟Ashley說點什麼..." 
+      style="flex:1;padding:12px;border-radius:20px;border:1px solid #eee;background:#fff;font-size:16px;">
+    
+    <button onclick="send()" 
+      style="margin-left:10px;padding:12px 18px;border-radius:20px;border:none;background:#ff4d6d;color:white;">
+      Send
+    </button>
   </div>
+
+</div>
+
+<!-- 升級彈窗 -->
+<div id="upgrade" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,200,220,0.6);justify-content:center;align-items:center;">
+
+  <div style="background:white;padding:30px;border-radius:20px;text-align:center;width:300px;">
+    <h3 style="color:#ff4d6d;">Ashley停下來了…</h3>
+    <p style="color:#666;">她好像開始在意你了，但不會再免費聊天了 💔</p>
+
+    <button onclick="pay()" 
+      style="margin-top:15px;padding:12px 20px;border:none;border-radius:20px;background:#ff4d6d;color:white;">
+      解鎖 Ashley 💕 $4.99
+    </button>
+  </div>
+
+</div>
 
 <script>
-let userId = null;
-let count = 0;
-let unlocked = false;
+let count = parseInt(localStorage.getItem("count") || "0");
+let unlocked = localStorage.getItem("unlocked");
 
-// 模擬 Google 登入
-function googleLogin() {
-  // 實際上應用 Google OAuth 2.0 或 Firebase Authentication
-  userId = 'user_' + Math.floor(Math.random()*1000000); // 模擬帳號ID
-  localStorage.setItem('userId', userId);
-  document.getElementById('login').style.display = 'none';
-  document.getElementById('chatContainer').style.display = 'flex';
-
-  // 讀取歷史對話
-  let history = JSON.parse(localStorage.getItem(userId)) || [];
-  const chat = document.getElementById('chat');
-  history.forEach(msg => {
-    chat.innerHTML += msg;
-  });
-  chat.scrollTop = chat.scrollHeight;
-}
-
-// 判斷語言
+// 語言判斷
 function detectLang(text) {
   return /[\u4e00-\u9fa5]/.test(text) ? "zh" : "en";
 }
 
-// 發送訊息
 async function send() {
-  if (!userId) return alert("請先登入！");
   let input = document.getElementById("msg");
   let chat = document.getElementById("chat");
+
   let message = input.value;
   if (!message) return;
 
+  // 👉 只有超過20句才限制
   if (!unlocked && count >= 20) {
     document.getElementById("upgrade").style.display = "flex";
     return;
   }
 
   count++;
+  localStorage.setItem("count", count);
 
   let lang = detectLang(message);
 
-  let userMsgHtml = `<div style="text-align:right;margin:12px 0;">
-      <span style="background:#ff4d6d;color:white;padding:10px 14px;border-radius:18px;">${message}</span>
-    </div>`;
-  chat.innerHTML += userMsgHtml;
+  // 使用者訊息
+  chat.innerHTML += `
+    <div style="text-align:right;margin:12px 0;">
+      <span style="background:#ff4d6d;color:white;padding:10px 14px;border-radius:18px;">
+        ${message}
+      </span>
+    </div>
+  `;
 
   input.value = "";
   chat.scrollTop = chat.scrollHeight;
 
   await new Promise(r => setTimeout(r, 800 + Math.random()*1200));
 
-  // 呼叫後端 API
   let res = await fetch("/api/chat", {
     method: "POST",
-    body: JSON.stringify({ message, lang, count, unlocked, userId })
+    body: JSON.stringify({ message, lang, count, unlocked })
   });
+
   let data = await res.json();
 
-  let aiMsgHtml = `<div style="text-align:left;margin:12px 0;">
-      <span style="background:#ffe4ec;padding:10px 14px;border-radius:18px;">${data.reply}</span>
-    </div>`;
-  chat.innerHTML += aiMsgHtml;
-
-  // 存到本地模擬「記住對話」
-  let history = JSON.parse(localStorage.getItem(userId)) || [];
-  history.push(userMsgHtml);
-  history.push(aiMsgHtml);
-  localStorage.setItem(userId, JSON.stringify(history));
+  // Ashley訊息
+  chat.innerHTML += `
+    <div style="text-align:left;margin:12px 0;">
+      <span style="background:#ffe4ec;padding:10px 14px;border-radius:18px;">
+        ${data.reply}
+      </span>
+    </div>
+  `;
 
   chat.scrollTop = chat.scrollHeight;
 }
 
-// 解鎖
+// 付款
 function pay() {
-  // 付款連結，實際上要接 Stripe
-  window.location.href = "https://buy.stripe.com/xxxxxxx";
+  window.location.href = "你的Stripe付款連結";
 }
 </script>
 
