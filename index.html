@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mira AI</title>
+</head>
+<body style="background:black;color:white;font-family:sans-serif;">
+
+<h2>Ashley</h2>
+
+<div id="chat" style="height:300px;overflow:auto;border:1px solid #333;"></div>
+
+<input id="msg" placeholder="說點什麼..." style="width:70%;">
+<button onclick="send()">Send</button>
+
+<script>
+async function send() {
+  let input = document.getElementById("msg");
+  let chat = document.getElementById("chat");
+
+  let message = input.value;
+
+  chat.innerHTML += "<div>你：" + message + "</div>";
+
+  let res = await fetch("/api/chat", {
+    method: "POST",
+    body: JSON.stringify({ message })
+  });
+
+  let data = await res.json();
+
+  chat.innerHTML += "<div>Mira：" + data.reply + "</div>";
+
+  input.value = "";
+}
+</script>
+
+</body>
+</html>
