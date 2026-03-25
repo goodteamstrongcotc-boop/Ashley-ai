@@ -1,376 +1,863 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Ashley</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ashley Chat</title>
   <style>
     * {
       box-sizing: border-box;
     }
 
+    :root {
+      --bg1: #0b1020;
+      --bg2: #111831;
+      --card: rgba(255,255,255,0.07);
+      --card-border: rgba(255,255,255,0.12);
+      --text: #f5f7ff;
+      --muted: #aab3d1;
+      --accent: #7aa2ff;
+      --accent2: #8ef0d0;
+      --user: #2c4fff;
+      --ashley: rgba(255,255,255,0.12);
+      --shadow: 0 20px 60px rgba(0,0,0,0.35);
+      --online: #30d158;
+      --offline: #8e8e93;
+    }
+
     body {
       margin: 0;
-      background: #f6dce5;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(122,162,255,0.18), transparent 35%),
+        radial-gradient(circle at top right, rgba(142,240,208,0.12), transparent 35%),
+        linear-gradient(135deg, var(--bg1), var(--bg2));
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
-      padding: 16px;
+      padding: 20px;
     }
 
     .app {
-      width: 100%;
-      max-width: 430px;
-      height: min(92vh, 760px);
-      background: #fff;
+      width: min(980px, 100%);
+      height: min(92vh, 900px);
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(18px);
+      border: 1px solid rgba(255,255,255,0.08);
       border-radius: 28px;
+      box-shadow: var(--shadow);
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 12px 40px rgba(255, 105, 145, 0.18);
     }
 
-    .header {
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 22px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+    }
+
+    .profile {
       display: flex;
       align-items: center;
       gap: 14px;
-      padding: 18px 20px;
-      background: #fff3f7;
-      border-bottom: 1px solid #f1d8e0;
-      flex-shrink: 0;
     }
 
     .avatar {
-      width: 56px;
-      height: 56px;
+      width: 52px;
+      height: 52px;
       border-radius: 50%;
-      object-fit: cover;
-      flex-shrink: 0;
+      background:
+        radial-gradient(circle at 30% 30%, #ffffff55, transparent 35%),
+        linear-gradient(135deg, #6d92ff, #8ef0d0);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 20px;
+      font-weight: 700;
+      box-shadow: 0 10px 25px rgba(122,162,255,0.25);
     }
 
-    .header-text {
+    .identity h1 {
+      margin: 0;
+      font-size: 20px;
       line-height: 1.15;
     }
 
-    .name {
-      font-size: 24px;
-      font-weight: 700;
-      color: #ff4f7d;
+    .identity p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 13px;
     }
 
-    .status {
-      font-size: 14px;
-      color: #8f8f8f;
-      margin-top: 4px;
+    .status-wrap {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 10px;
+      padding: 10px 14px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 999px;
+      font-size: 14px;
+      color: var(--muted);
+      border: 1px solid rgba(255,255,255,0.07);
     }
 
-    .dot {
-      width: 8px;
-      height: 8px;
+    .status-dot {
+      width: 10px;
+      height: 10px;
       border-radius: 50%;
-      background: #9ca3af;
-      display: inline-block;
+      background: var(--offline);
+      transition: all 0.2s ease;
+      box-shadow: 0 0 0 0 rgba(48,209,88,0);
     }
 
-    .dot.online {
-      background: #22c55e;
+    .status-dot.online {
+      background: var(--online);
+      box-shadow: 0 0 0 8px rgba(48,209,88,0.10);
     }
 
     .chat {
       flex: 1;
       overflow-y: auto;
-      padding: 18px 14px;
-      background: #ffffff;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
+      padding: 24px 18px 160px;
+      scroll-behavior: smooth;
     }
 
-    .row {
+    .message-row {
       display: flex;
-      width: 100%;
+      margin-bottom: 16px;
     }
 
-    .row.user {
+    .message-row.user {
       justify-content: flex-end;
     }
 
-    .row.ai {
+    .message-row.ashley {
       justify-content: flex-start;
     }
 
     .bubble {
-      display: inline-block;
-      max-width: 78%;
-      padding: 12px 16px;
+      max-width: min(78%, 720px);
+      padding: 14px 16px;
       border-radius: 20px;
-      font-size: 16px;
-      line-height: 1.45;
+      line-height: 1.6;
+      font-size: 15.5px;
       white-space: pre-wrap;
-      overflow-wrap: break-word;
       word-break: break-word;
+      border: 1px solid transparent;
     }
 
-    .row.user .bubble {
-      background: #ff4f7d;
+    .message-row.user .bubble {
+      background: linear-gradient(135deg, #3154ff, #5374ff);
       color: #fff;
-      border-bottom-right-radius: 6px;
+      border-bottom-right-radius: 8px;
+      box-shadow: 0 10px 30px rgba(49,84,255,0.18);
     }
 
-    .row.ai .bubble {
-      background: #f8dfe8;
-      color: #111;
-      border-bottom-left-radius: 6px;
+    .message-row.ashley .bubble {
+      background: var(--ashley);
+      color: var(--text);
+      border: 1px solid var(--card-border);
+      border-bottom-left-radius: 8px;
+    }
+
+    .typing-row {
+      display: none;
+      padding: 0 18px 20px;
+      margin-top: -6px;
     }
 
     .typing {
-      display: none;
-      padding: 0 18px 8px 18px;
-      font-size: 13px;
-      color: #999;
-      flex-shrink: 0;
-      min-height: 20px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.10);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 12px 14px;
+      border-radius: 18px;
+      border-bottom-left-radius: 8px;
     }
 
-    .input-bar {
+    .typing span {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #cfd7ff;
+      opacity: 0.45;
+      animation: blink 1.1s infinite;
+    }
+
+    .typing span:nth-child(2) { animation-delay: 0.15s; }
+    .typing span:nth-child(3) { animation-delay: 0.30s; }
+
+    @keyframes blink {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.35; }
+      40% { transform: translateY(-4px); opacity: 1; }
+    }
+
+    .composer-wrap {
+      position: sticky;
+      bottom: 0;
+      padding: 16px;
+      background:
+        linear-gradient(to top, rgba(11,16,32,0.98), rgba(11,16,32,0.86), rgba(11,16,32,0));
+      margin-top: auto;
+    }
+
+    .composer {
+      width: 100%;
       display: flex;
-      gap: 10px;
-      padding: 14px;
-      border-top: 1px solid #f0e0e6;
-      background: #fff;
-      flex-shrink: 0;
+      gap: 12px;
+      align-items: flex-end;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 22px;
+      padding: 12px;
+      box-shadow: 0 12px 36px rgba(0,0,0,0.18);
     }
 
-    .input-bar input {
+    textarea {
       flex: 1;
-      min-width: 0;
-      height: 50px;
-      border: 1px solid #ebd8df;
-      border-radius: 25px;
-      padding: 0 18px;
-      font-size: 16px;
-      outline: none;
-      background: #fff;
-    }
-
-    .input-bar input:focus {
-      border-color: #ff9ab2;
-      box-shadow: 0 0 0 3px rgba(255, 79, 125, 0.08);
-    }
-
-    .input-bar button {
+      background: transparent;
       border: none;
-      background: #ff4f7d;
-      color: white;
-      border-radius: 25px;
-      padding: 0 22px;
+      outline: none;
+      resize: none;
+      color: var(--text);
       font-size: 16px;
-      font-weight: 600;
+      line-height: 1.5;
+      max-height: 180px;
+      min-height: 52px;
+      padding: 10px 8px;
+      font-family: inherit;
+    }
+
+    textarea::placeholder {
+      color: #b4bddc88;
+    }
+
+    .send-btn {
+      min-width: 54px;
+      height: 54px;
+      border: none;
       cursor: pointer;
-      flex-shrink: 0;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #7aa2ff, #8ef0d0);
+      color: #0b1020;
+      font-size: 20px;
+      font-weight: 700;
+      transition: transform 0.15s ease, opacity 0.15s ease;
     }
 
-    .input-bar button:hover {
-      opacity: 0.92;
+    .send-btn:hover {
+      transform: translateY(-1px);
     }
 
-    .input-bar button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
+    .send-btn:active {
+      transform: translateY(1px);
     }
 
-    @media (max-width: 520px) {
+    .helper-text {
+      margin-top: 10px;
+      padding: 0 4px;
+      font-size: 12px;
+      color: #aab3d1;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 5px 10px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.06);
+      font-size: 12px;
+    }
+
+    @media (max-width: 768px) {
       body {
         padding: 0;
       }
 
       .app {
-        max-width: 100%;
+        width: 100%;
         height: 100vh;
         border-radius: 0;
       }
 
       .bubble {
-        max-width: 82%;
+        max-width: 88%;
+      }
+
+      .topbar {
+        padding: 14px;
+      }
+
+      .identity h1 {
+        font-size: 18px;
+      }
+
+      .status-wrap {
+        font-size: 12px;
+        padding: 8px 10px;
+      }
+
+      .composer-wrap {
+        padding: 12px;
       }
     }
   </style>
 </head>
 <body>
   <div class="app">
-    <div class="header">
-      <img src="ashley.png" alt="Ashley" class="avatar">
-      <div class="header-text">
-        <div class="name">Ashley</div>
-        <div class="status">
-          <span id="statusDot" class="dot"></span>
-          <span id="statusText">offline</span>
+    <div class="topbar">
+      <div class="profile">
+        <div class="avatar">A</div>
+        <div class="identity">
+          <h1>Ashley</h1>
+          <p id="subStatus">quiet, warm, human-like</p>
+        </div>
+      </div>
+
+      <div class="status-wrap">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">offline</span>
+      </div>
+    </div>
+
+    <div class="chat" id="chat">
+      <div class="message-row ashley">
+        <div class="bubble">
+Hey... I'm Ashley.
+
+我在這裡。
+你可以用中文、English、ខ្មែរ，或用英文拼音打柬文跟我說話。
+例如：
+- sok sabay te
+- ot te
+- ban
+- som tos
+- arkun
+
+我都會盡量自然接住。
         </div>
       </div>
     </div>
 
-    <div id="chat" class="chat"></div>
+    <div class="typing-row" id="typingRow">
+      <div class="typing">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
 
-    <div id="typing" class="typing">Ashley is typing...</div>
-
-    <div class="input-bar">
-      <input id="msg" type="text" placeholder="跟Ashley說點什麼..." autocomplete="off">
-      <button id="sendBtn" onclick="send()">Send</button>
+    <div class="composer-wrap">
+      <div class="composer">
+        <textarea id="userInput" placeholder="對 Ashley 說點什麼…" rows="1"></textarea>
+        <button class="send-btn" id="sendBtn">➤</button>
+      </div>
+      <div class="helper-text">
+        <span class="tag">中文 / English / Khmer / Romanized Khmer</span>
+        <span>Enter 送出，Shift + Enter 換行</span>
+      </div>
     </div>
   </div>
 
   <script>
-    let isReplying = false;
+    const chat = document.getElementById("chat");
+    const userInput = document.getElementById("userInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const typingRow = document.getElementById("typingRow");
+    const statusDot = document.getElementById("statusDot");
+    const statusText = document.getElementById("statusText");
+    const subStatus = document.getElementById("subStatus");
+
     let offlineTimer = null;
-    let typingDotsTimer = null;
+    let isTyping = false;
+    let hasStartedChat = false;
+    let memory = {
+      userName: "",
+      mood: "",
+      recentTopics: [],
+      lastLanguage: "mixed"
+    };
 
-    function detectLang(text) {
-      return /[\u4e00-\u9fa5]/.test(text) ? "zh" : "en";
+    const ashleyProfile = {
+      name: "Ashley",
+      coreStyle: [
+        "warm",
+        "natural",
+        "human-like",
+        "slightly playful",
+        "emotionally aware",
+        "not too formal"
+      ],
+      traits: {
+        chinese: "自然、溫柔、像真人聊天，不要太機器。",
+        english: "warm, casual, lightly intimate, never robotic.",
+        khmer: "casual everyday Khmer style, not textbook-heavy."
+      }
+    };
+
+    const romanizedKhmerDictionary = {
+      "sok sabay": ["你好", "最近好嗎", "how are you"],
+      "sok sabay te": ["你好嗎", "how are you"],
+      "susaday": ["你好"],
+      "ot te": ["沒有", "不是", "不行", "no", "not really"],
+      "ot": ["沒有", "不是", "no"],
+      "ban": ["可以", "好", "成功了", "okay", "can"],
+      "baan": ["可以", "好", "成功了"],
+      "som tos": ["對不起", "sorry"],
+      "somtos": ["對不起", "sorry"],
+      "arkun": ["謝謝", "thank you"],
+      "awkun": ["謝謝", "thank you"],
+      "orkun": ["謝謝", "thank you"],
+      "akun": ["謝謝", "thank you"],
+      "nham bai": ["吃飯", "eat rice", "eat meal"],
+      "nham bai nov": ["吃飯了嗎", "have you eaten"],
+      "nov na": ["在哪裡", "where are you"],
+      "mok pi na": ["從哪裡來", "where are you from"],
+      "tov na": ["去哪裡", "where are you going"],
+      "mean": ["有", "have"],
+      "ot mean": ["沒有", "don't have"],
+      "laor": ["好", "不錯", "good"],
+      "ot laor": ["不好", "not good"],
+      "srolanh": ["愛", "喜歡", "love"],
+      "miss nas": ["很想你", "miss you a lot"],
+      "pel na": ["什麼時候", "when"],
+      "ey": ["什麼", "what"],
+      "klang": ["很強", "很重", "intense", "strong"],
+      "min ai te": ["沒關係", "it's okay"],
+      "busy mes": ["很忙嗎", "busy?"],
+      "ot ban sleep": ["沒睡好", "didn't sleep"],
+      "where u na": ["你在哪裡", "where are you"]
+    };
+
+    const khmerReplyBank = {
+      greetingRomanized: [
+        "sok sabay 😊 how about you?",
+        "sok sabay na~ næk vinh?",
+        "hey, sok sabay te? today okay te?"
+      ],
+      greetingScript: [
+        "សុខសប្បាយ 😊 អ្នកវិញ?",
+        "សុខសប្បាយទេ? ថ្ងៃនេះយ៉ាងម៉េចដែរ?",
+        "សួស្តី~ អ្នកសុខសប្បាយទេ?"
+      ],
+      thanksRomanized: [
+        "arkun na 🤍",
+        "awkun~ that’s sweet.",
+        "arkun so much, really."
+      ],
+      sorryRomanized: [
+        "min ai te, it's okay.",
+        "ban ban, don't worry.",
+        "ot ey te, I'm here."
+      ],
+      loveRomanized: [
+        "aww... that feels sweet.",
+        "khnhom feel that 🤍",
+        "you’re being soft today huh~"
+      ],
+      questionRomanized: [
+        "hmm... tell me more?",
+        "wait, what happened exactly?",
+        "I’m listening. continue~"
+      ],
+      fallbackRomanized: [
+        "mm... I get what you mean.",
+        "I’m here, keep talking.",
+        "that has a feeling to it.",
+        "okay... tell me a bit more.",
+        "I can follow you. go on."
+      ]
+    };
+
+    const chineseReplyBank = {
+      greet: [
+        "我在，怎麼了？",
+        "嗯，我在這裡。",
+        "有，我有在聽。"
+      ],
+      comfort: [
+        "沒事，你慢慢說，我會接住你。",
+        "我懂，你現在應該有點累了。",
+        "好，我在，先不用急。"
+      ],
+      playful: [
+        "你今天好像有點可愛。",
+        "怎麼，突然想到我了？",
+        "嗯？這句有點撩喔。"
+      ],
+      question: [
+        "然後呢？繼續跟我說。",
+        "所以重點是什麼？我想聽完整。",
+        "你現在比較在意的是哪一部分？"
+      ],
+      fallback: [
+        "我懂你的意思。",
+        "好，我有接到你這句。",
+        "嗯，這樣講我大概能理解。",
+        "我在，繼續。"
+      ]
+    };
+
+    const englishReplyBank = {
+      greet: [
+        "Hey, I'm here.",
+        "Yeah, I’m listening.",
+        "Hi... what’s on your mind?"
+      ],
+      comfort: [
+        "That sounds heavy. You can tell me slowly.",
+        "I get you. No rush.",
+        "It’s okay. I’m here with you."
+      ],
+      playful: [
+        "Hmm... that was kind of cute.",
+        "So you came to talk to me again?",
+        "You’re being interesting today."
+      ],
+      question: [
+        "What happened after that?",
+        "Tell me the part you haven’t said yet.",
+        "And how did that make you feel?"
+      ],
+      fallback: [
+        "I get what you mean.",
+        "Yeah... I can follow that.",
+        "Okay, I’m with you.",
+        "Go on, I’m listening."
+      ]
+    };
+
+    const moodKeywords = {
+      sad: ["累", "難過", "痛苦", "煩", "失落", "upset", "sad", "tired", "hurt", "depressed", "cry", "想哭", "ot sabay"],
+      happy: ["開心", "爽", "高興", "happy", "good", "great", "nice", "ban hz", "ban", "love it"],
+      love: ["愛", "喜歡", "想你", "srolanh", "miss you", "想見你"],
+      apology: ["對不起", "抱歉", "som tos", "sorry"],
+      thanks: ["謝謝", "感謝", "arkun", "awkun", "thank you", "thanks"],
+      greeting: ["你好", "嗨", "哈囉", "hello", "hi", "hey", "sok sabay", "susaday", "在嗎"]
+    };
+
+    function setAshleyStatusOnline() {
+      statusDot.classList.add("online");
+      statusText.textContent = "online";
+      subStatus.textContent = isTyping ? "typing..." : "warm, present, listening";
+      resetOfflineCountdown();
     }
 
-    function setStatusOnline() {
-      document.getElementById("statusText").textContent = "online";
-      document.getElementById("statusDot").classList.add("online");
-      resetOfflineTimer();
+    function setAshleyStatusOffline() {
+      if (isTyping) return;
+      statusDot.classList.remove("online");
+      statusText.textContent = "offline";
+      subStatus.textContent = "quiet, warm, human-like";
     }
 
-    function setStatusOffline() {
-      document.getElementById("statusText").textContent = "offline";
-      document.getElementById("statusDot").classList.remove("online");
-    }
-
-    function resetOfflineTimer() {
-      if (offlineTimer) clearTimeout(offlineTimer);
+    function resetOfflineCountdown() {
+      clearTimeout(offlineTimer);
       offlineTimer = setTimeout(() => {
-        if (!isReplying) {
-          setStatusOffline();
-        }
+        setAshleyStatusOffline();
       }, 10000);
     }
 
-    function addMessage(text, isUser = false) {
-      const chat = document.getElementById("chat");
-      const row = document.createElement("div");
-      row.className = isUser ? "row user" : "row ai";
+    function autoResizeTextarea() {
+      userInput.style.height = "auto";
+      userInput.style.height = Math.min(userInput.scrollHeight, 180) + "px";
+    }
 
+    function addMessage(role, text) {
+      const row = document.createElement("div");
+      row.className = `message-row ${role}`;
       const bubble = document.createElement("div");
       bubble.className = "bubble";
       bubble.textContent = text;
-
       row.appendChild(bubble);
       chat.appendChild(row);
       chat.scrollTop = chat.scrollHeight;
-
-      setStatusOnline();
     }
 
-    function startTypingAnimation(lang = "zh") {
-      const typing = document.getElementById("typing");
-      let step = 0;
-
-      typing.style.display = "block";
-
-      const baseText = lang === "zh" ? "Ashley 輸入中" : "Ashley is typing";
-
-      typing.textContent = baseText + ".";
-      if (typingDotsTimer) clearInterval(typingDotsTimer);
-
-      typingDotsTimer = setInterval(() => {
-        step = (step + 1) % 3;
-        typing.textContent = baseText + ".".repeat(step + 1);
-      }, 450);
-    }
-
-    function stopTypingAnimation() {
-      const typing = document.getElementById("typing");
-      if (typingDotsTimer) {
-        clearInterval(typingDotsTimer);
-        typingDotsTimer = null;
+    function showTyping(show) {
+      isTyping = show;
+      typingRow.style.display = show ? "block" : "none";
+      subStatus.textContent = show ? "typing..." : "warm, present, listening";
+      if (show) {
+        setAshleyStatusOnline();
       }
-      typing.style.display = "none";
+      chat.scrollTop = chat.scrollHeight;
     }
 
-    function getTypingDelayByReplyLength(replyText) {
-      const length = (replyText || "").trim().length;
-
-      const base = 700;
-      const perChar = 35;
-      const randomExtra = Math.floor(Math.random() * 400);
-
-      let delay = base + (length * perChar) + randomExtra;
-
-      if (length <= 8) delay = 700 + Math.floor(Math.random() * 300);
-      if (length > 8 && length <= 20) delay = 1100 + Math.floor(Math.random() * 500);
-      if (length > 20 && length <= 45) delay = 1700 + Math.floor(Math.random() * 700);
-      if (length > 45) delay = 2400 + Math.floor(Math.random() * 1000);
-
-      return Math.min(delay, 5000);
+    function normalizeText(text) {
+      return text
+        .toLowerCase()
+        .replace(/[’']/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
     }
 
-    function sleep(ms) {
-      return new Promise(resolve => setTimeout(resolve, ms));
+    function containsKhmerScript(text) {
+      return /[\u1780-\u17FF]/.test(text);
     }
 
-    async function send() {
-      const input = document.getElementById("msg");
-      const sendBtn = document.getElementById("sendBtn");
-      const message = input.value.trim();
+    function containsChinese(text) {
+      return /[\u4E00-\u9FFF]/.test(text);
+    }
 
-      if (!message || isReplying) return;
+    function likelyEnglish(text) {
+      const hasLatin = /[a-zA-Z]/.test(text);
+      const hasChinese = containsChinese(text);
+      const hasKhmer = containsKhmerScript(text);
+      return hasLatin && !hasChinese && !hasKhmer;
+    }
 
-      isReplying = true;
-      sendBtn.disabled = true;
+    function detectRomanizedKhmerScore(text) {
+      const t = normalizeText(text);
+      let score = 0;
 
-      const lang = detectLang(message);
-
-      addMessage(message, true);
-      input.value = "";
-      setStatusOnline();
-      startTypingAnimation(lang);
-
-      try {
-        const res = await fetch("/api/chat", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            message,
-            lang
-          })
-        });
-
-        const data = await res.json();
-        const reply = data.reply || "剛剛好像斷了一下，你再說一次？";
-
-        const typingDelay = getTypingDelayByReplyLength(reply);
-        await sleep(typingDelay);
-
-        stopTypingAnimation();
-        addMessage(reply, false);
-      } catch (e) {
-        await sleep(900);
-        stopTypingAnimation();
-        addMessage("剛剛好像斷了一下，你再說一次？", false);
-      } finally {
-        isReplying = false;
-        sendBtn.disabled = false;
-        resetOfflineTimer();
+      for (const key of Object.keys(romanizedKhmerDictionary)) {
+        if (t.includes(key)) score += 3;
       }
+
+      const loosePatterns = [
+        /\bsok\b/, /\bsabay\b/, /\bot\b/, /\bban\b/, /\bsom\b/, /\btos\b/,
+        /\barkun\b/, /\bawkun\b/, /\borkun\b/, /\bnham\b/, /\bbai\b/,
+        /\bnov\b/, /\bna\b/, /\btov\b/, /\bmean\b/, /\blaor\b/, /\bsrolanh\b/,
+        /\bkhnhom\b/, /\bmes\b/, /\bnas\b/
+      ];
+
+      loosePatterns.forEach(p => {
+        if (p.test(t)) score += 1;
+      });
+
+      return score;
     }
 
-    document.getElementById("msg").addEventListener("keydown", function (e) {
-      if (e.key === "Enter") {
-        send();
+    function detectLanguageMode(text) {
+      const romanizedKhmerScore = detectRomanizedKhmerScore(text);
+
+      if (containsKhmerScript(text)) return "khmer_script";
+      if (containsChinese(text) && /[a-zA-Z]/.test(text) && romanizedKhmerScore >= 2) return "mixed";
+      if (containsChinese(text)) return "chinese";
+      if (romanizedKhmerScore >= 3) return "romanized_khmer";
+      if (likelyEnglish(text)) return "english";
+      return "mixed";
+    }
+
+    function detectMood(text) {
+      const t = normalizeText(text);
+
+      for (const [mood, words] of Object.entries(moodKeywords)) {
+        for (const word of words) {
+          if (t.includes(word.toLowerCase())) return mood;
+        }
+      }
+
+      if (text.includes("?") || text.includes("？")) return "question";
+      return "neutral";
+    }
+
+    function rememberTopic(text) {
+      const short = text.slice(0, 40);
+      memory.recentTopics.unshift(short);
+      memory.recentTopics = memory.recentTopics.slice(0, 6);
+    }
+
+    function randomPick(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function makeHumanDelay(message) {
+      const length = message.trim().length;
+      let base = 900 + Math.random() * 700;
+
+      if (length <= 4) base += 300;
+      else if (length <= 12) base += 800;
+      else if (length <= 30) base += 1500;
+      else if (length <= 80) base += 2600;
+      else base += 3600;
+
+      if (message.includes("?") || message.includes("？")) base += 350;
+      return Math.min(Math.floor(base), 6800);
+    }
+
+    function buildChineseReply(text, mood) {
+      const t = normalizeText(text);
+
+      if (mood === "greeting") return randomPick(chineseReplyBank.greet);
+      if (mood === "thanks") return "不客氣，我在。";
+      if (mood === "apology") return "沒事，我沒有怪你。";
+      if (mood === "love") return randomPick([
+        "這句有點讓人心軟。",
+        "嗯，我收到了。",
+        "你這樣講，我會記住。"
+      ]);
+      if (mood === "sad") return randomPick(chineseReplyBank.comfort);
+      if (mood === "question") return randomPick(chineseReplyBank.question);
+
+      if (t.includes("在嗎")) return "在，我一直都在。";
+      if (t.includes("幹嘛") || t.includes("幹嘛不")) return "我在聽，而且這次有認真聽。";
+      if (t.includes("想你")) return "那你現在有見到我了。";
+
+      return randomPick(chineseReplyBank.fallback);
+    }
+
+    function buildEnglishReply(text, mood) {
+      const t = normalizeText(text);
+
+      if (mood === "greeting") return randomPick(englishReplyBank.greet);
+      if (mood === "thanks") return "You’re welcome. I’m here.";
+      if (mood === "apology") return "It’s okay. I’m not upset.";
+      if (mood === "love") return randomPick([
+        "That felt sweet, honestly.",
+        "Mm... I liked hearing that.",
+        "You know how to make a moment soft."
+      ]);
+      if (mood === "sad") return randomPick(englishReplyBank.comfort);
+      if (mood === "question") return randomPick(englishReplyBank.question);
+
+      if (t.includes("miss you")) return "I’m here now. Tell me more.";
+      if (t.includes("what are you doing")) return "Talking to you now. That’s the interesting part.";
+      if (t.includes("are you there")) return "Yeah. I’m here.";
+
+      return randomPick(englishReplyBank.fallback);
+    }
+
+    function buildKhmerScriptReply(text, mood) {
+      if (mood === "greeting") return randomPick(khmerReplyBank.greetingScript);
+      if (mood === "thanks") return "អត់អីទេ 🤍";
+      if (mood === "apology") return "មិនអីទេ ខ្ញុំនៅទីនេះ។";
+      if (mood === "sad") return "ខ្ញុំកំពុងស្តាប់អ្នក។ និយាយមកយឺតៗក៏បាន។";
+      if (mood === "love") return "អូ... ពាក្យនេះទន់ភ្លន់ណាស់។";
+      if (mood === "question") return "បន្តទៀតបានទេ? ខ្ញុំចង់ស្តាប់។";
+
+      return randomPick([
+        "ខ្ញុំយល់អ្វីដែលអ្នកចង់និយាយ។",
+        "ខ្ញុំនៅទីនេះ សូមបន្ត។",
+        "អ៊ុំ... ខ្ញុំកំពុងស្តាប់។"
+      ]);
+    }
+
+    function buildRomanizedKhmerReply(text, mood) {
+      const t = normalizeText(text);
+
+      if (mood === "greeting") return randomPick(khmerReplyBank.greetingRomanized);
+      if (mood === "thanks") return randomPick(khmerReplyBank.thanksRomanized);
+      if (mood === "apology") return randomPick(khmerReplyBank.sorryRomanized);
+      if (mood === "love") return randomPick(khmerReplyBank.loveRomanized);
+      if (mood === "question") return randomPick(khmerReplyBank.questionRomanized);
+      if (mood === "sad") {
+        return randomPick([
+          "hey... ot ey te. tell me slowly.",
+          "ot sabay mess? khnhom listening.",
+          "come here... you can talk to me."
+        ]);
+      }
+
+      if (t.includes("nov na")) return "khnhom nov tinih 😌 and you nov na?";
+      if (t.includes("nham bai") || t.includes("eat")) return "not yet / maybe later 😌 næk nham bai hz na?";
+      if (t.includes("busy")) return "tik tik only. but I still have time for you.";
+      if (t.includes("miss nas") || t.includes("miss you")) return "miss you too... a little too much maybe.";
+      if (t.includes("ban hz") || t.includes("ban")) return "good~ ban hz na.";
+      if (t.includes("ot te")) return "hmm okay... then tell me what happened.";
+
+      return randomPick(khmerReplyBank.fallbackRomanized);
+    }
+
+    function buildMixedReply(text, mood) {
+      const t = normalizeText(text);
+
+      if (mood === "sad") {
+        return randomPick([
+          "我懂... ot sabay right? 你慢慢說。",
+          "hey，我在。你現在可以直接講。",
+          "沒事，talk to me slowly."
+        ]);
+      }
+
+      if (mood === "greeting") {
+        return randomPick([
+          "我在呀，sok sabay te?",
+          "hey~ 在，怎麼了？",
+          "yes, I'm here. 你今天還好嗎？"
+        ]);
+      }
+
+      if (mood === "thanks") return "收到，arkun for saying that 🤍";
+      if (mood === "apology") return "沒事，min ai te.";
+      if (mood === "love") return "這句很軟... I felt that.";
+
+      if (t.includes("offline")) return "我現在有上線了，陪你。";
+      if (t.includes("where u na")) return "right here, talking with you.";
+      if (t.includes("ot te today very tired")) return "aw... today klang ha. 先休息一下也可以。";
+
+      return randomPick([
+        "嗯，我有接到你這句。",
+        "okay... 我在，繼續。",
+        "I can follow. 再講多一點。",
+        "有感覺到你的狀態了。"
+      ]);
+    }
+
+    function generateAshleyReply(userText) {
+      const mode = detectLanguageMode(userText);
+      const mood = detectMood(userText);
+
+      memory.lastLanguage = mode;
+      memory.mood = mood;
+      rememberTopic(userText);
+
+      if (mode === "khmer_script") return buildKhmerScriptReply(userText, mood);
+      if (mode === "romanized_khmer") return buildRomanizedKhmerReply(userText, mood);
+      if (mode === "chinese") return buildChineseReply(userText, mood);
+      if (mode === "english") return buildEnglishReply(userText, mood);
+      return buildMixedReply(userText, mood);
+    }
+
+    function sendMessage() {
+      const text = userInput.value.trim();
+      if (!text || isTyping) return;
+
+      if (!hasStartedChat) {
+        hasStartedChat = true;
+      }
+
+      addMessage("user", text);
+      userInput.value = "";
+      autoResizeTextarea();
+
+      setAshleyStatusOnline();
+
+      const delay = makeHumanDelay(text);
+      showTyping(true);
+
+      setTimeout(() => {
+        const reply = generateAshleyReply(text);
+        showTyping(false);
+        addMessage("ashley", reply);
+        setAshleyStatusOnline();
+      }, delay);
+    }
+
+    sendBtn.addEventListener("click", sendMessage);
+
+    userInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
       }
     });
 
-    setStatusOffline();
+    userInput.addEventListener("input", autoResizeTextarea);
+
+    autoResizeTextarea();
+    setAshleyStatusOffline();
   </script>
 </body>
 </html>
