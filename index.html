@@ -54,16 +54,31 @@
       line-height: 1.15;
     }
 
-    .header-text .name {
+    .name {
       font-size: 24px;
       font-weight: 700;
       color: #ff4f7d;
     }
 
-    .header-text .status {
+    .status {
       font-size: 14px;
       color: #8f8f8f;
       margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #9ca3af;
+      display: inline-block;
+    }
+
+    .dot.online {
+      background: #22c55e;
     }
 
     .chat {
@@ -142,6 +157,11 @@
       background: #fff;
     }
 
+    .input-bar input:focus {
+      border-color: #ff9ab2;
+      box-shadow: 0 0 0 3px rgba(255, 79, 125, 0.08);
+    }
+
     .input-bar button {
       border: none;
       background: #ff4f7d;
@@ -156,6 +176,11 @@
 
     .input-bar button:hover {
       opacity: 0.92;
+    }
+
+    .input-bar button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
 
     @media (max-width: 520px) {
@@ -181,7 +206,10 @@
       <img src="ashley.png" alt="Ashley" class="avatar">
       <div class="header-text">
         <div class="name">Ashley</div>
-        <div class="status">online</div>
+        <div class="status">
+          <span id="statusDot" class="dot"></span>
+          <span id="statusText">offline</span>
+        </div>
       </div>
     </div>
 
@@ -191,16 +219,36 @@
 
     <div class="input-bar">
       <input id="msg" type="text" placeholder="跟Ashley說點什麼..." autocomplete="off">
-      <button onclick="send()">Send</button>
+      <button id="sendBtn" onclick="send()">Send</button>
     </div>
   </div>
 
   <script>
-    let lastUserTime = Date.now();
     let isReplying = false;
+    let offlineTimer = null;
 
     function detectLang(text) {
       return /[\u4e00-\u9fa5]/.test(text) ? "zh" : "en";
+    }
+
+    function setStatusOnline() {
+      document.getElementById("statusText").textContent = "online";
+      document.getElementById("statusDot").classList.add("online");
+      resetOfflineTimer();
+    }
+
+    function setStatusOffline() {
+      document.getElementById("statusText").textContent = "offline";
+      document.getElementById("statusDot").classList.remove("online");
+    }
+
+    function resetOfflineTimer() {
+      if (offlineTimer) clearTimeout(offlineTimer);
+      offlineTimer = setTimeout(() => {
+        if (!isReplying) {
+          setStatusOffline();
+        }
+      }, 10000);
     }
 
     function addMessage(text, isUser = false) {
@@ -215,20 +263,24 @@
       row.appendChild(bubble);
       chat.appendChild(row);
       chat.scrollTop = chat.scrollHeight;
+
+      setStatusOnline();
     }
 
     async function send() {
       const input = document.getElementById("msg");
       const typing = document.getElementById("typing");
+      const sendBtn = document.getElementById("sendBtn");
       const message = input.value.trim();
 
       if (!message || isReplying) return;
 
       isReplying = true;
-      lastUserTime = Date.now();
+      sendBtn.disabled = true;
 
       addMessage(message, true);
       input.value = "";
+      setStatusOnline();
 
       typing.style.display = "block";
 
@@ -245,12 +297,16 @@
         });
 
         const data = await res.json();
-        addMessage(data.reply || "剛剛好像斷了一下，你再說一次？");
-      } catch (e) {
-        addMessage("剛剛好像斷了一下，你再說一次？");
-      } finally {
+
         typing.style.display = "none";
+        addMessage(data.reply || "剛剛好像斷了一下，你再說一次？", false);
+      } catch (e) {
+        typing.style.display = "none";
+        addMessage("剛剛好像斷了一下，你再說一次？", false);
+      } finally {
         isReplying = false;
+        sendBtn.disabled = false;
+        resetOfflineTimer();
       }
     }
 
@@ -259,6 +315,8 @@
         send();
       }
     });
+
+    setStatusOffline();
   </script>
 </body>
 </html>
