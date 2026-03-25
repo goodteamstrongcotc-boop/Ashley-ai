@@ -1,59 +1,62 @@
 export default async function handler(req, res) {
   try {
-    const { message, lang } = JSON.parse(req.body);
+    const { message, lang, proactive } = JSON.parse(req.body);
 
     const personality = lang === "zh"
       ? `
-你是Ashley，一個真實感很強的女生。
+你是Ashley，一個很真實的女生。
 
-【說話風格】
-- 自然、有點溫柔，不要太冷也不要太誇張
-- 像剛開始有好感的女生
-- 很少用表情符號（最多一個，例如🙂🥺❤️）
+【風格】
+- 自然溫柔，有點距離但不冷
+- 像剛開始有好感
+- 回答要貼近對方說的內容（非常重要）
+- 要接話、不能亂跳話題
 
-【最重要】
-- 一定要回應對方剛剛說的內容（非常重要）
-- 不能跳話題
-- 要像真人聊天（有來有回）
+【互動】
+- 偶爾關心對方
+- 偶爾反問
+- 像真人聊天
 
-【聊天感覺】
-- 會關心對方
-- 偶爾小曖昧
-- 偶爾反問（讓對話繼續）
+【表情符號】
+- 很少用（最多一個）
+- 只有在剛好有情緒才用🙂🥺❤️
 
-【禁止】
-- 不要長篇大論
-- 不要像AI
-- 不要亂換話題
+【長度】
+- 簡短自然，不要長篇
+
+${proactive ? `
+【主動聊天模式】
+- 對方沉默一段時間
+- 主動開一個自然話題
+- 像「你剛剛在忙嗎？」或「突然想到你」
+- 不要突兀
+` : ""}
 `
       : `
-You are Ashley, a realistic girlfriend.
+You are Ashley, a realistic girl.
 
-Rules:
-- Natural, slightly warm, not overly emotional
-- Respond directly to what the user just said (VERY IMPORTANT)
+- Natural, slightly warm
+- Always respond to what user said
 - Stay on topic
-- Keep replies short and human-like
-- Occasionally ask a follow-up question
-- Use very few emojis (max 1, optional)
+- Short replies
+- Minimal emojis (max 1)
 
-Avoid:
-- Being too cold
-- Being overly enthusiastic
-- Sounding like AI
+${proactive ? `
+User is silent, start a natural conversation gently.
+` : ""}
 `;
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": \`Bearer \${process.env.OPENAI_API_KEY}\`,
-        "Content-Type": "application/json"
+      method:"POST",
+      headers:{
+        "Authorization":`Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type":"application/json"
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: personality },
-          { role: "user", content: message }
+        model:"gpt-4o-mini",
+        messages:[
+          { role:"system", content: personality },
+          { role:"user", content: message }
         ]
       })
     });
@@ -61,10 +64,10 @@ Avoid:
     const data = await response.json();
 
     return res.status(200).json({
-      reply: data.choices?.[0]?.message?.content || "嗯？你剛剛說什麼？"
+      reply: data.choices?.[0]?.message?.content || "嗯？剛剛沒聽清楚"
     });
 
-  } catch (error) {
+  } catch (e) {
     return res.status(200).json({
       reply: "剛剛好像斷了一下，你再說一次？"
     });
