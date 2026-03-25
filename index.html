@@ -134,6 +134,7 @@
       font-size: 13px;
       color: #999;
       flex-shrink: 0;
+      min-height: 20px;
     }
 
     .input-bar {
@@ -226,6 +227,7 @@
   <script>
     let isReplying = false;
     let offlineTimer = null;
+    let typingDotsTimer = null;
 
     function detectLang(text) {
       return /[\u4e00-\u9fa5]/.test(text) ? "zh" : "en";
@@ -267,9 +269,55 @@
       setStatusOnline();
     }
 
+    function startTypingAnimation(lang = "zh") {
+      const typing = document.getElementById("typing");
+      let step = 0;
+
+      typing.style.display = "block";
+
+      const baseText = lang === "zh" ? "Ashley 輸入中" : "Ashley is typing";
+
+      typing.textContent = baseText + ".";
+      if (typingDotsTimer) clearInterval(typingDotsTimer);
+
+      typingDotsTimer = setInterval(() => {
+        step = (step + 1) % 3;
+        typing.textContent = baseText + ".".repeat(step + 1);
+      }, 450);
+    }
+
+    function stopTypingAnimation() {
+      const typing = document.getElementById("typing");
+      if (typingDotsTimer) {
+        clearInterval(typingDotsTimer);
+        typingDotsTimer = null;
+      }
+      typing.style.display = "none";
+    }
+
+    function getTypingDelayByReplyLength(replyText) {
+      const length = (replyText || "").trim().length;
+
+      const base = 700;
+      const perChar = 35;
+      const randomExtra = Math.floor(Math.random() * 400);
+
+      let delay = base + (length * perChar) + randomExtra;
+
+      if (length <= 8) delay = 700 + Math.floor(Math.random() * 300);
+      if (length > 8 && length <= 20) delay = 1100 + Math.floor(Math.random() * 500);
+      if (length > 20 && length <= 45) delay = 1700 + Math.floor(Math.random() * 700);
+      if (length > 45) delay = 2400 + Math.floor(Math.random() * 1000);
+
+      return Math.min(delay, 5000);
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
     async function send() {
       const input = document.getElementById("msg");
-      const typing = document.getElementById("typing");
       const sendBtn = document.getElementById("sendBtn");
       const message = input.value.trim();
 
@@ -278,11 +326,12 @@
       isReplying = true;
       sendBtn.disabled = true;
 
+      const lang = detectLang(message);
+
       addMessage(message, true);
       input.value = "";
       setStatusOnline();
-
-      typing.style.display = "block";
+      startTypingAnimation(lang);
 
       try {
         const res = await fetch("/api/chat", {
@@ -292,16 +341,21 @@
           },
           body: JSON.stringify({
             message,
-            lang: detectLang(message)
+            lang
           })
         });
 
         const data = await res.json();
+        const reply = data.reply || "剛剛好像斷了一下，你再說一次？";
 
-        typing.style.display = "none";
-        addMessage(data.reply || "剛剛好像斷了一下，你再說一次？", false);
+        const typingDelay = getTypingDelayByReplyLength(reply);
+        await sleep(typingDelay);
+
+        stopTypingAnimation();
+        addMessage(reply, false);
       } catch (e) {
-        typing.style.display = "none";
+        await sleep(900);
+        stopTypingAnimation();
         addMessage("剛剛好像斷了一下，你再說一次？", false);
       } finally {
         isReplying = false;
