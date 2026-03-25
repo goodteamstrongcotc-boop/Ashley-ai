@@ -69,10 +69,7 @@ async function send() {
   if (!message) return;
 
   // 👉 只有超過20句才限制
-  if (!unlocked && count >= 20) {
-    document.getElementById("upgrade").style.display = "flex";
-    return;
-  }
+// 暫時關掉付費限制（方便測試）
 
   count++;
   localStorage.setItem("count", count);
