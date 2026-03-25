@@ -1,9 +1,23 @@
 let memory = {};
 
 export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(200).json({ reply: "Ashley is here." });
+  }
+
   try {
-    const { message, lang } = JSON.parse(req.body);
+    const body =
+      typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {});
+
+    const message = (body.message || "").trim();
+    const lang = body.lang || "zh";
     const userId = "default";
+
+    if (!message) {
+      return res.status(200).json({
+        reply: lang === "zh" ? "你剛剛是不是沒打字？" : "Did you forget to type something?"
+      });
+    }
 
     if (!memory[userId]) {
       memory[userId] = [];
@@ -16,8 +30,9 @@ export default async function handler(req, res) {
 
     memory[userId] = memory[userId].slice(-8);
 
-    const personality = lang === "zh"
-      ? `
+    const personality =
+      lang === "zh"
+        ? `
 你是Ashley，一個真實感很強的女生。
 
 【核心規則】
@@ -70,7 +85,7 @@ export default async function handler(req, res) {
 - 不要像心理諮商師
 - 不要重複相同句型
 `
-      : `
+        : `
 You are Ashley, a realistic girl with a natural and slightly warm personality.
 
 Rules:
@@ -105,10 +120,10 @@ Avoid:
 - being overly sweet in every message
 `;
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
@@ -116,14 +131,24 @@ Avoid:
         messages: [
           { role: "system", content: personality },
           ...memory[userId]
-        ]
+        ],
+        temperature: 0.9
       })
     });
 
-    const data = await response.json();
+    const data = await openaiResponse.json();
+
+    if (!openaiResponse.ok) {
+      return res.status(200).json({
+        reply:
+          lang === "zh"
+            ? `OpenAI錯誤：${data?.error?.message || "未知錯誤"}`
+            : `OpenAI error: ${data?.error?.message || "Unknown error"}`
+      });
+    }
 
     const reply =
-      data.choices?.[0]?.message?.content ||
+      data?.choices?.[0]?.message?.content?.trim() ||
       (lang === "zh" ? "嗯？你剛剛說什麼？" : "Hm? What did you just say?");
 
     memory[userId].push({
@@ -136,7 +161,7 @@ Avoid:
     return res.status(200).json({ reply });
   } catch (e) {
     return res.status(200).json({
-      reply: "剛剛好像斷了一下，你再說一次？"
+      reply: `系統錯誤：${e.message}`
     });
   }
 }
