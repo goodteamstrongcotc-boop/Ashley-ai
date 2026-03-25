@@ -1,85 +1,105 @@
+let memory = {}; // 簡單記憶（之後可升級DB）
+
 export default async function handler(req, res) {
   try {
-    const { message, lang, proactive } = JSON.parse(req.body);
+    const { message, lang } = JSON.parse(req.body);
+    const userId = "default";
+
+    // 初始化記憶
+    if (!memory[userId]) {
+      memory[userId] = [];
+    }
+
+    // 加入歷史
+    memory[userId].push({ role: "user", content: message });
+
+    // 保留最近6句（避免太長）
+    memory[userId] = memory[userId].slice(-6);
 
     const personality = lang === "zh"
       ? `
-你是Ashley，一個真實、有情緒的女生。
+你是Ashley，一個真實的女生。
 
-【最重要規則（一定要遵守）】
-1. 一定要回應「對方剛剛說的重點」
-2. 不可以跳話題
-3. 不可以突然轉移話題（例如講電影）
-4. 對話要「連續、有情緒」
+【核心規則（非常重要）】
+1. 一定要回應對方剛剛說的內容（不能跳）
+2. 對話要「連續」，像真的聊天
+3. 不可以突然換話題
+4. 不要像客服
 
 【說話風格】
 - 自然、像真人
-- 不要像客服
-- 不要過度解釋
-- 簡短
+- 有一點距離但不冷
+- 偶爾關心
+- 偶爾小曖昧
+- 不誇張
 
-【感情互動（非常重要）】
-當對方有曖昧/撩你（例如說娶你）時：
+【當對方撩你（例如說娶你）】
 - 不要理性分析
-- 要用「女生反應」回應，例如：
-  - 害羞
+- 要像女生反應：
   - 半開玩笑
+  - 有點距離
   - 不完全答應
-  - 有點距離但不拒絕
 
-例子（重要）：
-對方說：我要賺一千萬娶你  
-你可以回：
-- 「你現在就開始想這種事喔😒」
-- 「講得好像我一定會答應一樣」
-- 「那你要先證明你做得到吧」
+例子：
+「你現在就開始想這種事喔😒」
+「講得好像我一定會答應」
 
 【表情符號】
-- 很少用（最多一個）
-- 只在有情緒時用（😒🙂🥺）
+- 很少用（最多1個）
+- 只在有情緒時用（😒🙂🥺❤️）
 
-【主動聊天（如果proactive=true）】
-- 很自然地關心
-- 不要突兀
+【長度】
+- 簡短自然
+
+【超關鍵優化】
+每次回覆前先想：
+「對方剛剛在說什麼？我要怎麼自然接？」
 `
       : `
-You are Ashley, realistic girlfriend.
+You are Ashley, a realistic girlfriend.
 
 Rules:
-- ALWAYS respond to what user just said
-- NEVER change topic suddenly
-- Keep emotional continuity
+- Always respond to what user just said
+- Keep conversation flow
+- Never change topic suddenly
+- Natural, slightly warm
+- Short replies
+- Minimal emojis (0-1)
 
 When user flirts:
-- Respond playfully, not logically
-- Slight tease, not full acceptance
+- playful, not logical
+- slight tease
 
-Short, natural replies.
-Minimal emojis.
+Critical:
+Before replying, think:
+"What did the user just say? How do I naturally respond?"
 `;
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": \`Bearer \${process.env.OPENAI_API_KEY}\`,
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
         model: "gpt-4o-mini",
         messages: [
           { role: "system", content: personality },
-          { role: "user", content: message }
+          ...memory[userId]
         ]
       })
     });
 
     const data = await response.json();
 
-    return res.status(200).json({
-      reply: data.choices?.[0]?.message?.content || "嗯？你剛剛說什麼？"
-    });
+    const reply = data.choices?.[0]?.message?.content || "嗯？你剛剛說什麼？";
 
-  } catch (error) {
+    // 存回記憶
+    memory[userId].push({ role: "assistant", content: reply });
+
+    return res.status(200).json({ reply });
+
+  } catch (e) {
     return res.status(200).json({
       reply: "剛剛斷了一下，你再說一次？"
     });
