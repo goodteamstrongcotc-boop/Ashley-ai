@@ -19,15 +19,17 @@
   </div>
 
   <!-- Chat -->
-  <div id="typing" style="display:none;margin:10px;color:#999;font-size:14px;">
-  Ashley is typing...
-</div>
   <div id="chat" style="flex:1;padding:15px;overflow-y:auto;background:white;"></div>
+
+  <!-- typing -->
+  <div id="typing" style="display:none;margin:10px;color:#999;font-size:14px;">
+    Ashley is typing...
+  </div>
 
   <!-- Input -->
   <div style="display:flex;padding:10px;border-top:1px solid #eee;background:#fff;">
     <input id="msg" placeholder="跟Ashley說點什麼..." 
-      style="flex:1;padding:12px;border-radius:20px;border:1px solid #eee;background:#fff;font-size:16px;">
+      style="flex:1;padding:12px;border-radius:20px;border:1px solid #eee;font-size:16px;">
     
     <button onclick="send()" 
       style="margin-left:10px;padding:12px 18px;border-radius:20px;border:none;background:#ff4d6d;color:white;">
@@ -37,82 +39,93 @@
 
 </div>
 
-<!-- 升級彈窗 -->
-<div id="upgrade" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,200,220,0.6);justify-content:center;align-items:center;">
-
-  <div style="background:white;padding:30px;border-radius:20px;text-align:center;width:300px;">
-    <h3 style="color:#ff4d6d;">Ashley停下來了…</h3>
-    <p style="color:#666;">她好像開始在意你了...💔</p>
-
-    <button onclick="pay()" 
-      style="margin-top:15px;padding:12px 20px;border:none;border-radius:20px;background:#ff4d6d;color:white;">
-      解鎖 Ashley 💕 $4.99
-    </button>
-  </div>
-
-</div>
-
 <script>
-let count = parseInt(localStorage.getItem("count") || "0");
-let unlocked = localStorage.getItem("unlocked");
+let lastUserTime = Date.now();
 
 // 語言判斷
 function detectLang(text) {
   return /[\u4e00-\u9fa5]/.test(text) ? "zh" : "en";
 }
 
-async function send() {
-  let input = document.getElementById("msg");
+// 加入訊息
+function addMessage(text, isUser=false){
   let chat = document.getElementById("chat");
 
+  let html = isUser
+    ? `<div style="text-align:right;margin:14px 0;">
+        <span style="background:#ff4d6d;color:white;padding:10px 14px;border-radius:18px 18px 4px 18px;">
+          ${text}
+        </span>
+      </div>`
+    : `<div style="text-align:left;margin:14px 0;">
+        <span style="background:#ffe4ec;padding:10px 14px;border-radius:18px 18px 18px 4px;">
+          ${text}
+        </span>
+      </div>`;
+
+  chat.innerHTML += html;
+  chat.scrollTop = chat.scrollHeight;
+}
+
+// 發送訊息
+async function send(){
+  let input = document.getElementById("msg");
   let message = input.value;
-  if (!message) return;
+  if(!message) return;
 
-  // 👉 只有超過20句才限制
-// 暫時關掉付費限制（方便測試）
+  lastUserTime = Date.now();
 
-  count++;
-  localStorage.setItem("count", count);
+  addMessage(message, true);
+  input.value = "";
+
+  // typing動畫
+  let typing = document.getElementById("typing");
+  typing.style.display = "block";
+  typing.innerHTML = "Ashley is typing.";
+  setTimeout(()=>typing.innerHTML="Ashley is typing..", 500);
+  setTimeout(()=>typing.innerHTML="Ashley is typing...", 1000);
+
+  await new Promise(r => setTimeout(r, 1200 + Math.random()*1500));
+
+  typing.style.display = "none";
 
   let lang = detectLang(message);
 
-  // 使用者訊息
-  chat.innerHTML += `
-    <div style="text-align:right;margin:12px 0;">
-      <span style="background:#ff4d6d;color:white;padding:10px 14px;border-radius:18px;">
-        ${message}
-      </span>
-    </div>
-  `;
-
-  input.value = "";
-  chat.scrollTop = chat.scrollHeight;
-
-  await new Promise(r => setTimeout(r, 800 + Math.random()*1200));
-
   let res = await fetch("/api/chat", {
-    method: "POST",
-    body: JSON.stringify({ message, lang, count, unlocked })
+    method:"POST",
+    body: JSON.stringify({ message, lang })
   });
 
   let data = await res.json();
 
-  // Ashley訊息
-  chat.innerHTML += `
-    <div style="text-align:left;margin:12px 0;">
-      <span style="background:#ffe4ec;padding:10px 14px;border-radius:18px;">
-        ${data.reply}
-      </span>
-    </div>
-  `;
-
-  chat.scrollTop = chat.scrollHeight;
+  addMessage(data.reply);
 }
 
-// 付款
-function pay() {
-  window.location.href = "你的Stripe付款連結";
-}
+// 💥 Ashley 主動聊天（超重要）
+setInterval(async ()=>{
+  let now = Date.now();
+
+  // 如果30秒沒講話 → 主動訊息
+  if(now - lastUserTime > 30000){
+
+    let res = await fetch("/api/chat", {
+      method:"POST",
+      body: JSON.stringify({
+        message: "（對方沉默了一段時間，請主動開啟一個自然話題）",
+        lang: "zh",
+        proactive: true
+      })
+    });
+
+    let data = await res.json();
+
+    addMessage(data.reply);
+
+    lastUserTime = Date.now(); // 重置避免連續轟炸
+  }
+
+}, 10000);
+
 </script>
 
 </body>
